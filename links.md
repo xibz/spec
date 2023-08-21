@@ -18,48 +18,90 @@ finishes.
 This section will line out various definitions to ensure there are no
 assumptions being made when we talk about linking events
 
-* **CI** - Continuous integration
-* **CD** - Continuous delivery
-* **Activities Span** - An activities span is an end to end representation of all activities performed in the
-  CI/CD lifecycle of some entity
-* **Link** - A link is some relation to some thing, eg event, grouping, etc.
+* **CI** - [Continuous integration](https://bestpractices.cd.foundation/learn/ci/)
+* **CD** - [Continuous delivery](https://bestpractices.cd.foundation/learn/cd/)
+* **Span** - A span is an end to end representation of all activities performed
+  in the CI/CD lifecycle of some entity
+* **Link** - A link is an object containing relations between two CDEvents.
 * **Global ID** - A global ID is some overarching ID for a given span.
 
 ## Goals
 
-The biggest challenge in this whole process is ensuring that links can be
-retrieved quickly and efficiently, while also providing the necessary metadata
-and structure to give a detailed picture of how things occurred.
+The biggest challenge in this whole process is ensuring that connected events
+can be retrieved quickly and efficiently, while also providing the necessary
+metadata and structure to give a detailed picture of how things occurred.
 
 1) Provide a way of quickly retrieving all related links
 2) Keep link data structured small and simple
 3) Scalable
 
+## Use Cases
+
+This section will go over a few use cases and explain how this approach can be
+used to solve for each particular case.
+
+### 1. Fan Out Fan In
+
+The fan out fan in use case is an example where a system may make parallel
+requests (fan out), and merge back to some other or the very same system (fan in)
+
+Let us assume we have 3 system in our CI/CD environment. A continuous
+integration environment, which we will call CI system, that runs tests and
+builds artifacts, an artifact store that receives artifacts from the CI system,
+and lastly the CD system which consume these artifacts shown in the diagram
+below.
+
+```
+                
+                
+                
+                                       
+                    +---------------+     +-------------+
+                +-->| Build for Mac |---->| Test on Mac | --------+
++-----------+   |   +---------------+     +-------------+         |
+|  Static   |   |   +----------------+   +--------------+         |   +---------------------------+
+|  Code     |---+-->| Build for SLES |-->| Test on SLES | --------+-->| Promote & Deliver Release |
+|  Analysis |   |   +----------------+   +--------------+         |   +---------------------------+
++-----------+   |   +-------------------+   +-----------------+   |
+                +-->| Build for Windows |-->| Test on Windows | --+
+                    +-------------------+   +-----------------+
+
+                                       
+                                       
+                                       
+
+
+```
+
+The diagram above shows the CI event creating 3 separate artifacts that will
+make it's way to the artifact store. Some CD system would then consume those
+artifact, but would need to group all the artifact when the CI system finishes
+its pipeline. This is not meant to be a full diagram of the whole CDEvents
+flow, but a simple representation of the artifact(s) lifecycle.
+
+### 2. Generic UI
+
+With the goal of interoperability, this allows for compatible standalone
+generic UIs for any CI/CD system.
+
 ## Design
 
 This section will propose two designs. The first being how individual events
-can be linked to one another and be described in a way where it represents the
-complete picture of the whole CI/CD span. The second portion will address the
-goal of scalability.
+can be linked to one another from a CDEvents perspective and define how links
+will look. The second portion will address the goal of scalability.
 
-### New Headers
+## Connecting Events
 
-To allow for connecting events and proper propogation, we will add two new HTTP
-headers:
-* `X-CDEVENTS-GLOBAL-ID`
-* `X-CDEVENTS-PARENT-IDS`
-
-The reasoning for using headers in addition to  adding new fields to the
-payload, is that some services may not be adhering to CDEvents.  It is
-generally easier for a service to enable certain headers to be forwarded than
-needing to adapt or restructure some payload to accomodate some standard like
-CDEvents.
+An individual event usually has some relation to some trigger. This can be a
+new commit added to a pull request, a test suite being called in the CI
+process, or publishing a new artifact for some system to consume. While these
+events mean something themselves, they do not give the proper context of what
+caused what. This section will introduce two new fields to be used in the
+CDEvent spec that will allow for giving some relation between CDEvents. The two
+new fields will be added to the context section of CDEvents to solve this, a
+global ID and parent IDs.
 
 ```json
-# Headers
-# X-CDEVENTS-GLOBAL-ID: "00000000-0000-0000-0000-000000000001"
-# X-CDEVENTS-PARENT-IDS: "271069a8-fc18-44f1-b38f-9d70a1695819"
-
 {
   "context": {
     "version": "0.3.0-draft",
@@ -67,7 +109,7 @@ CDEvents.
     "source": "dev/jenkins",
     "type": "dev.cdevents.testsuite.finished.0.1.1",
     "global_id": "00000000-0000-0000-0000-000000000001", # new global id field
-    "parent_id": "271069a8-fc18-44f1-b38f-9d70a1695819", # new parent id field
+    "parent_ids": ["271069a8-fc18-44f1-b38f-9d70a1695819"], # new parent id field
     "timestamp": "2023-03-20T14:27:05.315384Z"
   },
   "subject": {
@@ -79,83 +121,245 @@ CDEvents.
 }
 ```
 
-Since consuming services will only have the parent IDs, it is important that
-the service fetches the parent whem it requires more context
+The `global_id` is an ID that will be generated when a new CDEvent span is
+wanted or if no CDEvent span is present. This ID will follow the
+[UUID](https://datatracker.ietf.org/doc/html/rfc4122) format. Global IDs will
+serve as a bucket for all CDEvents with some sort of relation to eachother.
 
-## IDs
+The `parent_ids` is an array of `context.id`s rather than `subject.id` since
+the `subject.id` do not have a specified format, and may not be unique across
+spans. For example, a CI service can have the same `subject.id` as some CD
+service. Further, this field is an array which allows for events to fan out and
+in like when a test suite calls a bunch of test cases in parallel.
 
-With the introduction of the two headers, it's important to establish what they
-are and their respective formats.
+Below represents an example of a few CDEvents and how they link to one another.
 
-The `X-CDEVENTS-GLOBAL-ID` is an ID that is generated when a new CDEvent span
-is wanted or if no CDEvent span is present. This ID will follow the [UUID](https://datatracker.ietf.org/doc/html/rfc4122)
-format.
 
-The `X-CDEVENTS-PARENT-IDS` is any number of immediate parent IDs to satifisy
-the fan out, fan in use case. These IDs will be the IDs of the `context.id` in
-the CDEvent which is of the UUID format.
+**Change Merged CDEvent**
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "11111111-0000-0000-0000-000000000000",
+	"global_id": "00000000-0000-0000-0000-000000000000",
+	"parent_ids": [],
+    "source": "/event/source/123",
+    "type": "dev.cdevents.change.merged.0.2.0",
+    "timestamp": "2023-03-20T14:27:05.315384Z"
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "change",
+    "content": {
+      "repository": {
+        "id": "TestRepo/TestOrg",
+        "source": "https://example.org"
+      }
+    }
+  }
+}
+```
 
-## Client APIs and Links Storage
+**Pipeline Queued CDEvent**
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "22222222-0000-0000-0000-000000000000",
+	"global_id": "00000000-0000-0000-0000-000000000000",
+	"parent_ids": ["11111111-0000-0000-0000-000000000000"],
+    "source": "/event/source/123",
+    "type": "dev.cdevents.pipelinerun.queued.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z"
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "pipelineRun",
+    "content": {
+      "pipelineName": "myPipeline",
+      "url": "https://www.example.com/mySubject123"
+    }
+  }
+}
+```
 
-So far we've only talked about what a service may receive when expecting a
-parent link. However, when we store a link, there's a lot more metadata that
-can and should be added.
+**Pipeline Started CDEvent**
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "33333333-0000-0000-0000-000000000000",
+	"global_id": "00000000-0000-0000-0000-000000000000",
+	"parent_ids": ["22222222-0000-0000-0000-000000000000"],
+    "source": "/event/source/123",
+    "type": "dev.cdevents.pipelinerun.started.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z"
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "pipelineRun",
+    "content": {
+      "pipelineName": "myPipeline",
+      "url": "https://www.example.com/mySubject123"
+    }
+  }
+}
+```
+
+With these three separate CDEvents we can see that these all belong to a single
+span of `00000000-0000-0000-0000-000000000000`, and that the relation is as follows
+
+```
++---------------+   parent   +-----------------+   parent   +------------------+
+| change merged |<-----------| pipeline queued |<-----------| pipeline started |
++---------------+            +-----------------+            +------------------+
+             |                   ^          |                   ^
+             +-------------------+          +-------------------+
+              inferred connection            inferred connection
+```
+
+By establishing who has what parent, we can infer how they connect.
+
+
+## Propagation
+
+Span propogation will be handled differently depending on the protocol that is
+used. This proposal will not cover the technical details but will cover various
+use cases that can occur in large systems. A separate technical design document
+can be found [here](TODO/link/to/tech/doc) for those who want some guidance on
+how propagation could be handled for a given protocal
+
+### Partial CDEvent Support
+
+The first case is where only a subset of the systems support CDEvents.
+For this example, we will use four services. Service A, B, and C.
+
+Services A, B, and D support CDEvents, while C does not. An example CDEvent
+span may look like:
+
+```
+  +-------------------------------------------------+
+  |                     Event Bus                   |
+  +-------------------------------------------------+
+       ^           |                           ^
+       |           v                           |
+  +---------+ +---------+   +---------+   +---------+
+  |    A    | |    B    |-->|    C    |-->|    D    |
+  +---------+ +---------+   +---------+   +---------+
+```
+
+From the example above we can see that persisting a CDEvent event across A and
+B can be easily done as they both support CDEvents. However, that propogation
+is broken when B talks to C.
+
+### Different Protocols
+
+As mentioned before, propogation is up to the protocol, e.g. HTTP(S), MQTT,
+AMQP, etc. A full list can be found [here](https://github.com/cloudevents/spec#cloudevents-documents).
+Protocols that handle propogation differently should rely on the SDKs to
+consume and continue the propogation.
+
+### Separate Event Buses
+
+Another situation which occurs when there exists multiple event buses and
+sharing occurs due to consumer(s).
+
+```
+# Case 1: Different Event Busses
+
++---------------+   +---------------+   +---------------+
+|  Event Bus A  |   |  Event Bus B  |   |  Event Bus C  |
++---------------+   +---------------+   +---------------+
+             ^ |     ^ |         ^ |     ^ | 
+             | v     | v         | v     | v 
+            +-----------+       +-----------+
+            | Service A |       | Service B |
+            +-----------+       +-----------+
+
+# Case 2: Possible Duplicate Consumed Events
+
++---------------+   +---------------+
+|  Event Bus A  |<->|  Event Bus B  |
++---------------+   +---------------+
+             ^ |     ^ | 
+             | v     | v 
+            +-----------+
+            | Service A |
+            +-----------+
+```
+
+This proposal will not tackle these problems, but identify them as issues that
+the technical design docoument will need to solve.
+
+For case 1, introducing a links service becomes much more difficult. If a user
+is to query for a full span since the link data may be persisted in different
+databases.
+
+Case 2 is more about consuming duplicate events and sending duplicate events
+which can cause a potential issue around how links represents those
+duplications.
+
+## Links Spec
+
+So far we've only talked about what a service may receive when receiving the
+new CDEvent containing links. However, when we store a link, there's a lot more
+metadata that can and should be added.
 
 The idea is we'd expect users to start link, group, and end links accordingly
 through APIs we'd provide. This is very similar to how tracing works.
 Granularity in tracing is completely up to the engineer which this proposal
 also intends users to do.
 
-This will introduce new APIs to the CDEvents SDKs, such as `addLink`.
-This API will be used to create a new link based on some CDEvent context.
-The context may contain things like parent caller and other useful metadata.
+This will introduce new APIs to the CDEvents SDKs to handle automatic injection
+of links or allowing users to provide their own definition of what a CDEvent
+span is.
 
-```
-(context: CDEventContext) addLink(link)
-```
+The link spec definition will look like this
 
-startLink will utilize the parent ID to make some sort of relation back to the
-parent.
-This method is attached to the LinkContext which will contain the current
-metadata about the current composed of link, eg what current link is being
-built along with the parent link ID.
-
-When calling `addLink`, it is important to understand the association to the
-parent.
-
-```
-// Adds a new link to the CDEvent context which will be sent to the link
-// service at some point.
-cdEventContext.addLink(link: Link);
-// Link may be a class that can be a ToLink, FromLink, WithLink
+```json
+{
+  "global_id": "05CEDE1F-8C13-4699-80C3-B4AC6468414E",
+  "link_type": "TO",
+  "event_kind": "TRIGGER",
+  "from": "F27E36A4-5C78-43C0-840A-52524DFEED03",
+  "to": "F004290E-5E45-45F4-B97A-FA82499F534C",
+  "tags": [
+    "ci.environment": "prod"
+  ]
+}
 ```
 
-Here we see an enum of `CAUSE` which is one of the few types of relations that
-a link can have.
-Below defines the list of enums a relation can be
+| Name       | Description                                                          |
+|------------|----------------------------------------------------------------------|
+| global_id  | CDEvent span ID                                                      |
+| link_type  | An enum that represents the type of link, e.g. 'TO', 'FROM', 'GROUP' |
+| event_kind | An enum that represents what kind of an event was consumed/produced. |
+| from       | Where the link is coming from                                        |
+| to         | Where the link is going to                                           |
+| tags       | Custom metadata that an individual link can have                     |
 
-| Name  | Description                                         |
+Below defines a list of `link_type` enums a kind can have
+
+| Name  | Description                                                                               |
 |-------|-------------------------------------------------------------------------------------------|
-| TO  | When a link is creating an event, it will use TO to signal to what target ID        |
-| FROM  | When a link is receiving an event, it will use FROM to signal what service called it    |
+| TO    | When a link is creating an event, it will use TO to signal to what target ID              |
+| FROM  | When a link is receiving an event, it will use FROM to signal what service called it      |
 | GROUP | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
+
+Below defines a list of `event_kind` enums a link can have
+
+| Name    | Description                                                        |
+|---------|--------------------------------------------------------------------|
+| TRIGGER | When an event was triggered rather than called directly, e.g. cron |
+| DIRECT  | When an event was called directly instead of using the event bus   |
+| BUS     | When an event was propogated via event bus                         |
 
 These links can be, but are not limited to, sent when a CDEvent has completed
 to some collector or to the link service itself. Further the link service will
 allow for tagging of various metadata.
-
-For instance, a `WithLink` may be used with some test that is ran in our custom
-pipeline called, `FooPipeline`. It runs a test suite, `BarSuite`, and runs tests `A`,
-`B`, and `C`.
-
-Assume our pipeline was triggered by some git website, which `FooPipeline`
-would create a `FromLink` indicating the trigger from our git website. Further
-at some point our pipeline decides to start the `BarSuite`. `BarSuite` would
-add a new `WithLink` saying it's with the `FooPipeline`. We can keep going with
-other `WithLink`s for each test, but each test will be "with"-ed the suite
-instead of the pipeline. It's important to note when using the `GROUP` link
-type, that links that are grouped under some `ID` will be grouped **under**
-that event.
 
 Some users may prefer to not run a separate links service especially if they
 know their overall flow may only contain a few links. If that is the case,
@@ -171,85 +375,7 @@ generate one and that will be used for the lifetime of the whole events span
 
 This show's an example of how these different types would be used in a CI/CD setting.
 
-## Links API
-* `/links/{global id}`
-  * `GET`
-  * Returns a list of links associated with some global ID
-
-  ```
-  REQUEST
-  ---
-  {
-    "maxLinks": ([0-9]+|null),
-    "pagination_token": <some-pagination-token> # can be null for first page
-  }
-
-  RESPONSE
-  ---
-  {
-    "global_id": <some UUID>,
-    "token": <pagination token>, # used for second request to retrieve further pages
-    "links": [
-      ...
-    ]
-  }
-  ```
-
-* `/links`
-  * `POST`
-  * Uploads a series of created links.
-
-  ```
-  REQUEST
-  ---
-  {
-    "links": [
-      ...
-    ]
-  }
-  ```
-
-* `/links`
-  * `GET`
-  * Returns a list of links
-
-  ```
-  REQUEST
-  ---
-  {
-    "pagination_token": "<some token>"
-  }
-  ```
-
-* `/links/event`
-  * `POST`
-  * Adds a CDEvent to the links backend
-
-  ```
-  REQUEST
-  ---
-  {
-    "event": {
-      "context": {
-        "version": "0.3.0-draft",
-        "id": "505b31c2-8bc8-47b3-a1a0-269d7a8530ac",
-        "source": "dev/jenkins",
-        "type": "dev.cdevents.testsuite.finished.0.1.1",
-        "timestamp": "2023-03-20T14:27:05.315384Z"
-      },
-      "subject": {
-        "id": "MyTestSuite",
-        "source": "/tests/com/org/package",
-        "type": "testSuite",
-        "content": {}
-      }
-    },
-    "links": [ // optional
-    ]
-  }
-  ```
-
-### CDEvents Span
+### CDEvents Span Definition
 
 While most use cases can rely on the CDEvents SDK to dictate what a span may
 look like. However, with the links portion of the SDK, users may specify when a
@@ -262,11 +388,7 @@ fast lookups. This section is going to describe how the proposed links format
 will be scalable and also provide tactics on how DB read/writes can be done.
 
 The purpose of the global ID is to ensure very fast lookups no matter the
-database. We could say that only graph DBs could be used to do a full span
-lookup without a global ID but that poses two problems:
-
-* Slower lookups as the graph DB needs to backtrack to find the full span
-* Requires either graph DBs or using SQL like graph DBs.
+database. Without a global ID the database or its client would need to recursively follow event references, upstream or downstream depending on the use case. A graph DB would easily provide that, and it is also possible to implement on top of SQL like DBs and document DBs, but it will never be as fast as querying for a global ID.
 
 Instead a link service that processes and agnostically stores to some DB is
 much prefer as it gives companies and developers options to choose from.  When
@@ -279,133 +401,3 @@ the number of events returned. This problem is mitigated in that only the
 immediate parent(s) links are returned, and any higher ancestry are excluded.
 If some service needs to get access to a higher (a parent's parent) they would
 need to use the links API to retrieve them.
-
-## Use Cases
-
-This section will go over a few use cases and explain how this approach can be
-used to solve for each particular case.
-
-### 1. Fan Out Fan In
-
-The fan out fan in use case is an example where a system may make parallel
-requests (fan out), and merge back to some other or the very same system (fan in)
-
-Let us assume we have 3 system in our CI/CD environment. A continuous
-integration environment, which we will call CI system,  that runs tests and
-builds artifacts, an artifact store that receives artifacts from the CI system,
-and lastly the CD system which consume these artifacts.
-
-### 2. Generic UI
-
-## OpenTelemetry
-
-This section is going to go through a number of reasons on why using something
-like OpenTelemetry to solve this problem is not the right fit.
-
-OpenTelemetry is a tracing standard, library, and a collector collector.
-Tracing also has other standards aside from OpenTelemetry, such as Zipkin,
-Jaeger, etc.
-
-Tracing is divided into several ideas, but we are only interested two for this
-proposal: context, spans.
-
-### Spans
-
-Spans are units of work or operation. A span is a superset of a link. While the
-formats do overlap in some of fields, the biggest difference is that span
-contains a lot more fields.
-
-Here's a sample span that show's the verbosity of a span:
-```json
-# https://opentelemetry.io/docs/concepts/signals/traces/#span-context
-{
-  "trace_id": "7bba9f33312b3dbb8b2c2c62bb7abe2d",
-  "parent_id": "",
-  "span_id": "086e83747d0e381e",
-  "name": "/v1/sys/health",
-  "start_time": "2021-10-22 16:04:01.209458162 +0000 UTC",
-  "end_time": "2021-10-22 16:04:01.209514132 +0000 UTC",
-  "status_code": "STATUS_CODE_OK",
-  "status_message": "",
-  "attributes": {
-    "net.transport": "IP.TCP",
-    "net.peer.ip": "172.17.0.1",
-    "net.peer.port": "51820",
-    "net.host.ip": "10.177.2.152",
-    "net.host.port": "26040",
-    "http.method": "GET",
-    "http.target": "/v1/sys/health",
-    "http.server_name": "mortar-gateway",
-    "http.route": "/v1/sys/health",
-    "http.user_agent": "Consul Health Check",
-    "http.scheme": "http",
-    "http.host": "10.177.2.152:26040",
-    "http.flavor": "1.1"
-  },
-  "events": [
-    {
-      "name": "",
-      "message": "OK",
-      "timestamp": "2021-10-22 16:04:01.209512872 +0000 UTC"
-    }
-  ]
-}
-```
-
-The `attributes` field is the same as our `tags` field in this proposal. So
-spans would satisfy all of our requirements, and plus some. However, there is 
-complexity we will consider in a later section.
-
-Spans also have a few different types: client, server, consumer, producer, etc.
-While this can cover all our use cases, this doesn't guarantee on how libraries
-like sleuth handle the span-kind for incoming requests.
-
-### Context Propogation
-
-Context propogation is how various spans can correlate to one another to form a
-trace. Propogation relies heavily on HTTP headers, which allow for propogation.
-The biggest issue here are the various different standards we mentioned in the
-[OpenTelemetry section](# open-telemetry). Generally this means libraries are
-either really large, due to containing all formats, or require pulling in a
-different dependency to support some format. This means if we decide to have a
-separate service that handles tracing, we have to be sure that we choose a
-format.
-
-### Complications
-
-While spans are certainly flexible, various fields would not be used, which
-could cause issues depending on the tracing exporter, which is used to export
-traces to some viewable service, e.g. AWS XRay, Jaeger, etc.
-
-These fields would not be needed:
- * name
- * status_code
- * status_message
-
-Depending on what context format we decide to support, this could have issues
-with users that already have tracing enabled in their systems that rely on some
-other format.
-
-Exporter can drop spans if they are invalid. This is the biggest concern.
-Missing `status_code` for example could cause the span to be dropped.
-
-Further this makes documentation of the libraries very difficult. We'd need to
-almost wrap the OpenTelemetry libraries to add documentation/methods to ensure
-users follow our format otherwise if users end up missing attributes,
-parameters, etc, then some tool may have issues making sense of the spans.
-
-Based on the number of complications, to get OpenTelemetry to work as CDEvents
-links we'd need to: 
-
-* hooks to potentially separate out normal tracing from CDEvents
-* wrap OpenTelemetry SDK to adhere to a consistent format
-* ensure collectors don't break in any field or attributes we don't have
-* if they do, work would be needed to be done here. May need custom CDEvents
-trace exporter
-* may need two trace contexts to separate tracing from CDEvents.
-
-The amount of work here to get tracing to work is about the same, except with
-more baggage.
-
-The benefits of using tracing however is we would have a known format and
-services that can already view traces.
