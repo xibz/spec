@@ -209,7 +209,7 @@ The link spec definition will look like this
 ```json
 {
   "chain_id": "05CEDE1F-8C13-4699-80C3-B4AC6468414E",
-  "link_type": "TO",
+  "link_type": "RELATION",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
       "id": "F27E36A4-5C78-43C0-840A-52524DFEED03",
@@ -235,11 +235,10 @@ The link spec definition will look like this
 
 Below defines a list of `link_type` enums a kind can have
 
-| Name  | Description                                                                               |
-|-------|-------------------------------------------------------------------------------------------|
-| TO    | When a link is creating an event, it will use TO to signal to what target ID              |
-| FROM  | When a link is receiving an event, it will use FROM to signal what service called it      |
-| GROUP | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
+| Name     | Description                                                                               |
+|----------|-------------------------------------------------------------------------------------------|
+| RELATION | When a link has a relation, it can describe that relation with the `to` and `from` fields     |
+| GROUP    | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
 
 Below defines a list of `event_kind` enums a link can have
 
