@@ -237,7 +237,9 @@ Below defines a list of `link_type` enums a kind can have
 
 | Name     | Description                                                                               |
 |----------|-------------------------------------------------------------------------------------------|
-| RELATION | When a link has a relation, it can describe that relation with the `to` and `from` fields     |
+| START    | The starting CDEvent in a chain                                                           |
+| END      | The ending CDEvent in a chain                                                             |
+| RELATION | When a link has a relation, it can describe that relation with the `to` and `from` fields |
 | GROUP    | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
 
 Below defines a list of `event_kind` enums a link can have
@@ -265,71 +267,83 @@ The chain ID header will continue to propagate, unless the user explicitly
 starts a new CDEvent chain. If there is no chain ID, the client will generate
 one and that will be used for the lifetime of the whole events chain
 
+Further, links are always constructed from the consumer point of view, with the
+exception being the start and stop links. Allowing for start and stop to be
+sent immediately, as opposed from the consumers point of view, allows for
+single node events and/or allowing for UI systems to display as events are
+occurring. This means when an event is consumed, the consumer will send a link
+connecting itself to the parent event, as the consumer will know its context id
+which a parent event would not be aware of. Wneh I care.
+
 ```
 +-----+      +-----+      +-----+                                                                +--------------+         +-----------+
 | Git |      | CI  |      | CD  |                                                                | Link Service |         | Event Bus |
 +--+--+      +--+--+      +--+--+                                                                +-------+------+         +-----+-----+
    |            |            |           #1 (send change merged event)                                   |                        |
    +----------------------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #2 (source change links)                                        |                        |
+   |            |            |           #2 (source change link to start chain)                          |                        |
    +----------------------------------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |   #3 (proxy link #2)   |
+   |            |            |                                                                           |   #3 (proxy link #1)   |
    |            |            |                                                                           |<-----------------------|
    |            |            |           #4 (receive change merged event)                                |                        |
    |            |<----------------------------------------------------------------------------------------------------------------+
    |            |            |           #5 (send pipeline queued event)                                 |                        | 
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #6 (pipeline queued links w/ parent: #1)                        |                        |
+   |            |            |           #6 (source change links connecting #1 -> #5)                    |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #7 (proxy link #6)    |
+   |            |            |                                                                           |   #7 (proxy link #6)   |
    |            |            |                                                                           |<-----------------------|
    |            |            |           #8 (send pipeline started event)                                |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #9 (pipeline started links w/ parent: #5)                       |                        |
+   |            |            |           #9 (pipeline queued links connecting #5 -> #8)                  |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
    |            |            |                                                                           |  #10 (proxy link #9)   |
    |            |            |                                                                           |<-----------------------|
    |            |            |           #11 (send build queued event)                                   |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #12 (build queued event links w/ parent: #8)                    |                        |
+   |            |            |           #12 (pipeline started links connecting #6 -> #9)                |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
    |            |            |                                                                           |  #13 (proxy link #12)  |
    |            |            |                                                                           |<-----------------------|
    |            |            |           #14 (send build started event)                                  |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #15 (build started event links w/ parent: #11)                  |                        |
+   |            |            |           #15 (build queued event links connecting #11 -> #14)             |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #16 (proxy link #15)  |
+   |            |            |                                                                           |  #17 (proxy link #16)  |
    |            |            |                                                                           |<-----------------------|
-   |            |            |           #17 (send build completed event)                                |                        |
+   |            |            |           #18 (send build completed event)                                |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #18 (build completed event links w/ parent: #14)                |                        |
+   |            |            |           #19 (build started event links connecting #14 -> #18)           |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #19 (proxy link #18)  |
+   |            |            |                                                                           |  #20 (proxy link #15)  |
    |            |            |                                                                           |<-----------------------|
-   |            |            |           #20 (send pipeline finished event)                              |                        |
+   |            |            |           #21 (send pipeline finished event)                              |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |           #21 (pipeline finished event links w/ parent: #17)              |                        |
+   |            |            |           #22 (build completed event links connecting #18 -> #21)         |                        |
    |            +---------------------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #22 (proxy link #21)  |
+   |            |            |                                                                           |  #23 (proxy link #22)  |
    |            |            |                                                                           |<-----------------------|
-   |            |            |           #23 (receive pipeline finished event)                           |                        |
+   |            |            |           #24 (receive pipeline finished event)                           |                        |
    |            |            |<---------------------------------------------------------------------------------------------------+ 
-   |            |            |           #24 (send pipeline queued event)                                |                        |
+   |            |            |           #25 (send pipeline queued event)                                |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
-   |            |            |           #25 (pipeline queued links w/ parent: #20)                      |                        |
+   |            |            |           #26 (pipeline finished event links connecting #21 -> #25)       |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #26 (proxy link #25)  |
+   |            |            |                                                                           |  #27 (proxy link #26)  |
    |            |            |                                                                           |<-----------------------|
-   |            |            |           #27 (send pipeline started event)                               |                        |
+   |            |            |           #28 (send pipeline started event)                               |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
-   |            |            |           #28 (pipeline started links w/ parent: #24)                     |                        |
+   |            |            |           #29 (pipeline queued links connecting #25 -> #28)               |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
-   |            |            |                                                                           |  #29 (proxy link #28)  |
+   |            |            |                                                                           |  #30 (proxy link #29)  |
    |            |            |                                                                           |<-----------------------|
-   |            |            |           #30 (send environment created event)                            |                        |
+   |            |            |           #31 (send environment created event)                            |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
-   |            |            |           #31 (environment created links w/ parent: #27)                  |                        |
+   |            |            |           #32 (pipeline started links connecting #28 -> #31)              |                        |
+   |            |            +--------------------------------------------------------------------------------------------------->|
+   |            |            |                                                                           |  #33 (proxy link #32)  |
+   |            |            |                                                                           |<-----------------------|
+   |            |            |           #34 (environment created end link for #31)                      |                        |
    |            |            +--------------------------------------------------------------------------------------------------->|
    |            |            |                                                                           |  #32 (proxy link #31)  |
    |            |            |                                                                           |<-----------------------|
@@ -337,6 +351,120 @@ one and that will be used for the lifetime of the whole events chain
 
 This show's an example of how these different types would be used in a CI/CD
 setting, but is not the only architecture.
+
+### Payloads
+
+This section will describe the first few sequences in the sequence diagram to
+help explain the overall flow using payloads from CDEvents.
+
+1. This is our very first event to the start of our CI/CD chain. This event
+   would have been sent from some source management tool like Github, Gitlabs,
+   etc.
+
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+    "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.change.merged.0.1.2",
+    "timestamp": "2023-03-20T14:27:05.315384Z"
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "change",
+    "content": {
+      "repository": {
+        "id": "cdevents/service",
+        "source": "https://github.com/cdevents/service/pull/1234"
+      }
+    }
+  }
+}
+```
+
+Something to call out here is that the `chain_id` may have been `null`, for
+whatever reason, prior to this event. This means any parents to this event did
+not generate a `chain_id`. When an event is sent, it is important that the
+sender generates this id.
+
+2. We send the start link to let the links service know that we are creating a
+   new chain.
+
+```json
+{
+  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+  "link_type": "START",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631" # context.id of #1
+}
+```
+
+3. Event bus proxies the link payload from `#2` to the links service.
+
+4. Shows some consumer consuming `#1` to do some action.
+
+5. The CI system will queue a pipeline execution, and will generates a
+`context.id` to be sent
+
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+    "id": "AA6945F8-B0F1-48DD-B658-25ACF95BD2F5",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.pipelinerun.queued.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z"
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "pipelineRun",
+    "content": {
+      "pipelineName": "myPipeline",
+      "url": "https://www.example.com/mySubject123"
+    }
+  }
+}
+```
+
+6. As the send change merge event is sent, the system will follow up with
+sending a link associated with the prior event which connects `#1` to `#5`
+
+```json
+{
+  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+  "link_type": "RELATION",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "from": {
+      "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631" # context.id of #1
+  },
+  "to": {
+      "id": "AA6945F8-B0F1-48DD-B658-25ACF95BD2F5" # context.id of #5
+  },
+  "tags": [
+    "ci.environment": "prod"
+  ]
+}
+```
+
+7. The event bus will then forward link `#6` to the links service
+
+34. Paylods from `8-33` are very similar to all prior payloads shown here, but
+    the last sequence is the ending link.
+
+```json
+{
+  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+  "link_type": "END",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "id": "7D5E011F-5073-44A7-B4F0-86DD7D4C2C7F" # context.id of #31
+}
+```
+
 
 ### CDEvents Chain Definition
 
