@@ -465,6 +465,25 @@ sending a link associated with the prior event which connects `#1` to `#5`
 }
 ```
 
+### Separate Links vs Within CDEvents
+
+This will go over the design choice of having links as a separate event
+rather than being contained within some CDEvent. The most important design
+consideration is that links could expand the payload of a CDEvent especially
+for a large complex systems. A system may have a deployment of hundreds of
+micro-services as artifacts to kubernetes. If we consider having the links live
+within the CDEvent, then this specific deployment would contain links to all
+consumed artifact events as parents, which greatly expands the total size of
+the CDEvent. By having them as separate events allows users to more easily
+consume CDEvents. Further, a counter argument may be that those hundred
+artifacts could be represented as a single artifact. While that is true, we are
+forcing users to know that they need to compress all those artifacts into a
+single artifact, because we decided to include links within the CDEvent itself,
+and this also restricts how users use CDEvents.
+
+Further links act as metadata about how events are connected, and do not
+pertain to anything for the event, itself. Many consumers will not rely on
+links at all, so having things separate seems appropriate.
 
 ### CDEvents Chain Definition
 
