@@ -50,7 +50,13 @@ PR -> associates via commit that ticket link and/or create_ticket event -> sourc
   }
 }
 ```
+Benefits:
 
+- Flexibility. Allows users to implement (or not) this event type as they see fit.
+- Allows actions to be taken at the time of ticket creation.
+
+Drawbacks:
+- There could be tickets that are not related to CD.
 ### Metadata on Existing CDEvents
 
 ```
