@@ -26,6 +26,10 @@
         "timestamp": {
           "type": "string",
           "format": "date-time"
+        },
+        "chain_id": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false,
