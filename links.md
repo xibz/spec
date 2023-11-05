@@ -224,14 +224,14 @@ The link spec definition will look like this
 }
 ```
 
-| Name            | Description                                                        |
-|-----------------|--------------------------------------------------------------------|
-| chain_id   | This represents the full lifecycles of a series of events in CDEvents   |
-| link_type  | An enum that represents the type of link, e.g. 'TO', 'FROM', 'GROUP'    |
-| event_kind | An enum that represents a category of what the event is associated with |
-| from       | Where the link is coming from                                           |
-| to         | Where the link is going to                                              |
-| tags       | Custom metadata that an individual link can have                        |
+| Name            | Description                                                                 |
+|-----------------|-----------------------------------------------------------------------------|
+| chain_id   | This represents the full lifecycles of a series of events in CDEvents            |
+| link_type  | An enum that represents the type of link, e.g. 'START', 'END', 'RELATION'        |
+| event_kind | A stringed value representing any sort of relationship the link has to the event |
+| from       | Where the link is coming from                                                    |
+| to         | Where the link is going to                                                       |
+| tags       | Custom metadata that an individual link can have                                 |
 
 Below defines a list of `link_type` enums a kind can have
 
@@ -241,16 +241,6 @@ Below defines a list of `link_type` enums a kind can have
 | END      | The ending CDEvent in a chain                                                             |
 | RELATION | When a link has a relation, it can describe that relation with the `to` and `from` fields |
 | GROUP    | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
-
-Below defines a list of `event_kind` enums a link can have
-
-| Name     | Description         |
-|----------|---------------------|
-| ARTIFACT | An artifact CDEvent |
-| BUILD    | An artifact CDEvent |
-| CD       | A CD event          |
-| CI       | A CI event          |
-| TEST     | A test CDEvent      |
 
 These links can be, but are not limited to being, sent when a CDEvent has
 completed: to some collector, the link service, or the event bus . Further
@@ -265,15 +255,16 @@ debugging.
 
 The chain ID header will continue to propagate, unless the user explicitly
 starts a new CDEvent chain. If there is no chain ID, the client will generate
-one and that will be used for the lifetime of the whole events chain
+one and that will be used for the lifetime of the whole events chain.
 
-Further, links are always constructed from the consumer point of view, with the
-exception being the start and stop links. Allowing for start and stop to be
-sent immediately, as opposed from the consumers point of view, allows for
-single node events and/or allowing for UI systems to display as events are
-occurring. This means when an event is consumed, the consumer will send a link
-connecting itself to the parent event, as the consumer will know its context id
-which a parent event would not be aware of. Wneh I care.
+Further, when links are created from a producer and consumer point of view, the
+producer will not know what is consuming a CDEvent. This makes connecting
+CDEvents to one another difficult from a producer's point of view. To mitigate
+this, links will be constructed from the consumer with the exceptions of the
+start and stop links. When a service knows how CDEvents are connected, the
+service can choose to connect them themselves. A good example of this is when a
+service runs tests. There is no need for the consumer to construct this, and
+can all be done from the service running the test.
 
 ```
 +-----+      +-----+      +-----+                                                                +--------------+         +-----------+
