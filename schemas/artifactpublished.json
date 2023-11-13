@@ -31,6 +31,9 @@
         "chain_id": {
           "type": "string",
           "minLength": 1
+        },
+        "links": {
+          "$ref": "links/embeddedlinksarray.json"
         }
       },
       "additionalProperties": false,

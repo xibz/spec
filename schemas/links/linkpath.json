@@ -1,0 +1,43 @@
+{
+  "chain_id": {
+    "type": "string",
+    "minLength": 1
+  },
+  "timestamp": {
+    "type": "string",
+    "format": "date-time"
+  },
+  "from": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "to": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "chain_id",
+    "link_type",
+    "timestamp",
+    "from",
+    "to"
+  ]
+}
