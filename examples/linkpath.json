@@ -1,0 +1,15 @@
+{
+  "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+  "link_type": "PATH",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "from": {
+    "id": "f27e36a4-5c78-43c0-840a-52524dfeed03"
+  },
+  "to": {
+    "id": "f004290e-5e45-45f4-b97a-fa82499f534c"
+  },
+  "tags": {
+    "ci.environment": "prod"
+  }
+}
+
