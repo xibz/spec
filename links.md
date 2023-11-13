@@ -13,6 +13,49 @@ This proposal will outline a new approach that will allow for connecting
 CDEvents and give a clear distinction of when an activity chain starts and
 finishes.
 
+## CDEvents Architecture
+
+Below is an example diagram for a CDEvent system to help illustrate how users
+and systems may utilize CDEvents. In this case, a user is merging a GitHub pull
+request and then using some CDEvent frontend to query all links for their
+request to get a full view of all that has happened.
+
+```
++--------------------------------------------------------------------------+          +------------------+
+|                                                                          | (links)  |                  |
+|                                 Event Bus                                +--------->|                  |
+|                                                                          |          |                  |
++----------------------+---------------------------------------------------+          |                  |
+       ^               |   ^                               |   ^                      |                  |
+       |               |   |                               |   |                      |                  |
+       |               |   |                               |   |                      |                  |
+       |               v   |                               v   |                      |                  |
++------+------+   +--------+----+   +-------------+   +--------+----+                 |     Links        |
+|             |   |             |   |             |<--+             |                 |     Service      |
+|    GitHub   |   |   Jenkins   +-->| Artifactory |   |  Spinnaker  |                 |                  |
+|             |   |             |   |             +-->|             |                 |                  |
++-------------+   +-------------+   +-------------+   +------+------+                 |                  |
+       ^                                                     |                        |                  |
+       |                                                     v                        |                  |
+       |                                              +-------------+                 |                  |
+       |                                              |             |                 |                  |
+       |                                              | Kubernetes  |                 |                  |
+       |                                              |             |                 |                  |
+       | user merges a pull                           +-------------+                 +------------------+
+       | request from GitHub                                                                  ^  |
+       |                                                                                      |  |
+       |                                                                                      |  |
+       |                                                                                      |  |
++------+-----+                                                                                |  |
+|            |                                                                                |  |
+|    User    |  frontend requests all links for a particular request                          |  |
+|            +--------------------------------------------------------------------------------+  |
+|     o      |                                                                                   |
+|    /|\     |<----------------------------------------------------------------------------------+
+|    / \     |
++------------+
+```                                                                                   
+
 ## Semantics
 
 This section will define various terms to ensure there are no assumptions being
@@ -20,9 +63,9 @@ made when we talk about linking events
 
 * **CI**        - [Continuous integration](https://bestpractices.cd.foundation/learn/ci/)
 * **CD**        - [Continuous delivery](https://bestpractices.cd.foundation/learn/cd/)
-* **Chain**      - A chain is an end to end representation of all activities performed
+* **Chain**     - A chain is an end to end representation of all activities performed
   in the CI/CD life cycle of some entity
-* **Link**      - A link is an object containing relations between two CDEvents.
+* **Link**      - A link is an object which describes how an event is related to another event.
 
 ## Goals
 
@@ -73,20 +116,15 @@ flow, but a simple representation of the artifact(s) life cycle.
 With the goal of interoperability, this allows for compatible standalone
 generic UIs for any CI/CD system.
 
-## Design
-
-This section will propose two designs. The first being how individual events
-can be linked from a CDEvents perspective and define how links will look. The
-second portion will address the goal of scalability.
-
 ## Connecting Events
 
-An individual event usually has some relation to some trigger. This can be a
+An individual event usually has some connection to some trigger. This can be a
 new commit added to a pull request, a test suite being called in the CI
 process, or publishing a new artifact for some system to consume. While these
 events mean something themselves, they do not give the proper context of what
-caused what. This section will introduce a new field within the CDEvents
-context that will allow for giving some relation between CDEvents.
+caused what. This section will introduce two new fields, `chain_id` and
+`links`, within the CDEvents context that will allow for giving some path
+between CDEvents.
 
 ```json
 {
@@ -110,83 +148,102 @@ context that will allow for giving some relation between CDEvents.
 The `chain_id` is an ID that will be generated when a new CDEvent chain is
 wanted or if no CDEvent chain is present. This ID will follow the
 [UUID](https://datatracker.ietf.org/doc/html/rfc4122) format. Chain IDs will
-serve as a bucket for all CDEvents with some sort of relation to each other.
+serve as a bucket for all CDEvents with some sort of path to each other.
+
+### Optional Links Field
+
+While links can be sent separately, links can also be embedded in the CDEvent
+context as an optional field. Embedded links look similar to separate links
+except `START` links are not needed since we can infer when a chain has started
+based on the context of the event. This leaves the only two types of links that
+may be embedded, `PATH` and `END`. While `END` could be also inferred it
+may is not as simple especially if there are gaps or islands. Having an event
+specifically say it is the `END` of a chain will allow for UIs or systems to
+act accordingly based off the ending notation.
+
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "76e96c6d-e418-42a5-b3f9-04d5c0699ac4",
+    "chain_id": "7ff3f526-1a0e-4d35-8a4c-7d6295e97359",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.build.queued.0.1.1",
+    "timestamp": "2023-03-20T14:20:05.315384Z",
+    "links": [
+      {
+        "link_type": "PATH",
+        "from": {
+          "id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a source.merged CDEvent
+        }
+      }
+    ]
+  },
+  "subject": {
+    "id": "pkg:golang/mygit.com/myorg/myapp@234fd47e07d1004f0aed9c",
+    "source": "/event/source/123",
+    "type": "artifact",
+    "content": {
+      "change": {
+        "id": "myChange123",
+        "source": "my-git.example/an-org/a-repo"
+      }
+    }
+  }
+}
+```
+
+Above shows a simple path link that would allow for a connection between the
+source changed and the build queued event. To illustrate links further, we can
+allow for an artifact relation between what artifact was published to the
+source change event which is shown below.
+
+
+```json
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "271069a8-fc18-44f1-b38f-9d70a1695819",
+    "chain_id": "7ff3f526-1a0e-4d35-8a4c-7d6295e97359",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.artifact.published.0.1.1",
+    "timestamp": "2023-03-20T14:35:06.123456Z",
+    "links": [
+      {
+        "link_type": "RELATION",
+        "link_kind": "ARTIFACT",
+        "target": {
+          "id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"
+        }
+      }
+    ]
+  },
+  "subject": {
+    "id": "pkg:golang/mygit.com/myorg/myapp@234fd47e07d1004f0aed9c",
+    "source": "/event/source/123",
+    "type": "artifact",
+    "content": {
+      "change": {
+        "id": "myChange123",
+        "source": "my-git.example/an-org/a-repo"
+      }
+    }
+  }
+}
+```
 
 ## Propagation
 
 Chain propagation will be handled differently depending on the protocol that is
-used. This proposal will not cover the technical details but will cover various
-use cases that can occur in large systems.
+used. At a high level, the SDK expects calls to construct the proper paths, but
+connecting of events will be handled completely by the SDKs.
 
-### Partial CDEvent Support
-
-The first case is where only a subset of the systems support CDEvents.
-For this example, we will use four services. Service A, B, and C.
-
-Services A, B, and D support CDEvents, while C does not. An example CDEvent
-chain may look like:
-
-```
-  +-------------------------------------------------+
-  |                     Event Bus                   |
-  +-------------------------------------------------+
-       ^           |                           ^
-       |           v                           |
-  +---------+ +---------+   +---------+   +---------+
-  |    A    | |    B    |-->|    C    |-->|    D    |
-  +---------+ +---------+   +---------+   +---------+
-```
-
-From the example above we can see that persisting a CDEvent event across A and
-B can be easily done as they both support CDEvents. However, that propagation
-is broken when B talks to C.
-
-### Different Protocols
-
-As mentioned before, propagation is up to the protocol, e.g. HTTP(S), MQTT,
-AMQP, etc. A full list can be found [here](https://github.com/cloudevents/spec#cloudevents-documents).
-Protocols that handle propagation differently should rely on the SDKs to
-consume and continue the propagation.
-
-### Separate Event Buses
-
-Another situation which occurs when there exists multiple event buses and
-sharing occurs due to consumer(s).
-
-```
-# Case 1: Different Event Busses
-
-+---------------+   +---------------+   +---------------+
-|  Event Bus A  |   |  Event Bus B  |   |  Event Bus C  |
-+---------------+   +---------------+   +---------------+
-             ^ |     ^ |         ^ |     ^ | 
-             | v     | v         | v     | v 
-            +-----------+       +-----------+
-            | Service A |       | Service B |
-            +-----------+       +-----------+
-
-# Case 2: Possible Duplicate Consumed Events
-
-+---------------+   +---------------+
-|  Event Bus A  |<->|  Event Bus B  |
-+---------------+   +---------------+
-             ^ |     ^ | 
-             | v     | v 
-            +-----------+
-            | Service A |
-            +-----------+
-```
-
-This proposal will not tackle these problems, but identify them as issues that
-the technical design document will need to solve.
-
-For case 1, introducing a links service becomes much more difficult. If a user
-is to query for a full chain since the link data may be persisted in different
-databases.
-
-Case 2 is more about consuming duplicate events and sending duplicate events
-which can cause a potential issue around how links represents those
-duplications.
+There are a couple cases where propagation is difficult, and maybe even
+impossible depending on what the receiving services are willing to do. In
+events where the SDKs are not used, it is up to these receiving services to
+pass the chain IDs. If this is not done, then there will be a break in the
+chain, which means that a new chain will be started, or missing links that will
+cause these services to not be visible.
 
 ## Links Spec
 
@@ -194,7 +251,7 @@ So far we have only talked about what a service may receive when consuming a
 CDEvent with links. However, when we store a link, there's a lot more metadata
 that can and should be added.
 
-The idea is we would expect users to start links, groups, and end links
+The idea is we would expect users to start links, connect links, and end links
 accordingly through APIs we would provide. This is very similar to how tracing
 works in that the individual services dictate when a tracing span starts and
 finishes.  Granularity in tracing is completely up to the engineer which this
@@ -204,46 +261,8 @@ This will introduce new APIs to the CDEvents SDKs to handle automatic injection
 of links or allow users to provide their own definition of what a CDEvent chain
 is.
 
-The link spec definition will look like this
-
-```json
-{
-  "chain_id": "05CEDE1F-8C13-4699-80C3-B4AC6468414E",
-  "link_type": "RELATION",
-  "timestamp": "2023-03-20T14:27:05.315384Z",
-  "from": {
-      "id": "F27E36A4-5C78-43C0-840A-52524DFEED03",
-      "event_kind": "ARTIFACT"
-  },
-  "to": {
-      "id": "F004290E-5E45-45F4-B97A-FA82499F534C"
-  },
-  "tags": [
-    "ci.environment": "prod"
-  ]
-}
-```
-
-| Name            | Description                                                                 |
-|-----------------|-----------------------------------------------------------------------------|
-| chain_id   | This represents the full lifecycles of a series of events in CDEvents            |
-| link_type  | An enum that represents the type of link, e.g. 'START', 'END', 'RELATION'        |
-| event_kind | A stringed value representing any sort of relationship the link has to the event |
-| from       | Where the link is coming from                                                    |
-| to         | Where the link is going to                                                       |
-| tags       | Custom metadata that an individual link can have                                 |
-
-Below defines a list of `link_type` enums a kind can have
-
-| Name     | Description                                                                               |
-|----------|-------------------------------------------------------------------------------------------|
-| START    | The starting CDEvent in a chain                                                           |
-| END      | The ending CDEvent in a chain                                                             |
-| RELATION | When a link has a relation, it can describe that relation with the `to` and `from` fields |
-| GROUP    | When a link is to be grouped with other events, it will use GROUP to establish a grouping |
-
 These links can be, but are not limited to being, sent when a CDEvent has
-completed: to some collector, the link service, or the event bus . Further
+completed: to some collector, the link service, or the event bus. Further
 the link service will allow for tagging of various metadata allowing for users
 to specify certain labels when looking at links.
 
@@ -257,14 +276,14 @@ The chain ID header will continue to propagate, unless the user explicitly
 starts a new CDEvent chain. If there is no chain ID, the client will generate
 one and that will be used for the lifetime of the whole events chain.
 
-Further, when links are created from a producer and consumer point of view, the
-producer will not know what is consuming a CDEvent. This makes connecting
-CDEvents to one another difficult from a producer's point of view. To mitigate
-this, links will be constructed from the consumer with the exceptions of the
-start and stop links. When a service knows how CDEvents are connected, the
-service can choose to connect them themselves. A good example of this is when a
-service runs tests. There is no need for the consumer to construct this, and
-can all be done from the service running the test.
+Further, when links are created from a producer or consumer, the producer will
+not know what is consuming a CDEvent. This makes connecting CDEvents to one
+another difficult from the producer. To mitigate this, links will be
+constructed from the consumer with the exceptions of the start and stop links.
+When a service knows how CDEvents are connected, the service can choose to
+connect them themselves. A good example of this is when a service runs tests.
+There is no need for the consumer to construct this, and can all be done from
+the service running the test. 
 
 ```
 +-----+      +-----+      +-----+                                                                +--------------+         +-----------+
@@ -340,8 +359,8 @@ can all be done from the service running the test.
    |            |            |                                                                           |<-----------------------|
 ```
 
-This show's an example of how these different types would be used in a CI/CD
-setting, but is not the only architecture.
+This example shows how these different types would be used in a CI/CD setting,
+but is not the only architecture.
 
 ### Payloads
 
@@ -356,8 +375,8 @@ help explain the overall flow using payloads from CDEvents.
 {
   "context": {
     "version": "0.4.0-draft",
-    "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
-    "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631",
+    "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
+    "id": "38a09112-a1ab-4c26-94c4-edfc234ef631",
     "source": "/event/source/123",
     "type": "dev.cdevents.change.merged.0.1.2",
     "timestamp": "2023-03-20T14:27:05.315384Z"
@@ -386,10 +405,12 @@ sender generates this id.
 
 ```json
 {
-  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+  "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
   "link_type": "START",
   "timestamp": "2023-03-20T14:27:05.315384Z",
-  "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631" # context.id of #1
+  "node": {
+    "id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
+  }
 }
 ```
 
@@ -427,14 +448,14 @@ sending a link associated with the prior event which connects `#1` to `#5`
 
 ```json
 {
-  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
-  "link_type": "RELATION",
+  "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
+  "link_type": "PATH",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
-      "id": "38A09112-A1AB-4C26-94C4-EDFC234EF631" # context.id of #1
+      "id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
   },
   "to": {
-      "id": "AA6945F8-B0F1-48DD-B658-25ACF95BD2F5" # context.id of #5
+      "id": "aa6945f8-b0f1-48dd-b658-25acf95bd2f5" # context.id of #5
   },
   "tags": [
     "ci.environment": "prod"
@@ -452,35 +473,134 @@ sending a link associated with the prior event which connects `#1` to `#5`
   "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
   "link_type": "END",
   "timestamp": "2023-03-20T14:27:05.315384Z",
-  "id": "7D5E011F-5073-44A7-B4F0-86DD7D4C2C7F" # context.id of #31
+  "node": {
+    "id": "7d5e011f-5073-44a7-b4f0-86dd7d4c2c7f" # context.id of #31
+  }
 }
 ```
 
-### Separate Links vs Within CDEvents
 
-This will go over the design choice of having links as a separate event
-rather than being contained within some CDEvent. The most important design
-consideration is that links could expand the payload of a CDEvent especially
-for a large complex systems. A system may have a deployment of hundreds of
-micro-services as artifacts to kubernetes. If we consider having the links live
-within the CDEvent, then this specific deployment would contain links to all
-consumed artifact events as parents, which greatly expands the total size of
-the CDEvent. By having them as separate events allows users to more easily
-consume CDEvents. Further, a counter argument may be that those hundred
-artifacts could be represented as a single artifact. While that is true, we are
-forcing users to know that they need to compress all those artifacts into a
-single artifact, because we decided to include links within the CDEvent itself,
-and this also restricts how users use CDEvents.
+### Link Types
 
-Further links act as metadata about how events are connected, and do not
-pertain to anything for the event, itself. Many consumers will not rely on
-links at all, so having things separate seems appropriate.
+This section will describe the four different `link_type`s: `START`, `END`, `PATH`, and
+`RELATION`.
 
-### CDEvents Chain Definition
+First is the common link fields shared between all links 
 
-While most use cases can rely on the CDEvents SDK to dictate what a chain may
-look like. However, with the links portion of the SDK, users may specify when a
-chain begins and ends giving full control to the user.
+| Name            | Description                                                                                              |
+|-----------------|----------------------------------------------------------------------------------------------------------|
+| chain_id   | This represents the full life cycles of a series of events in CDEvents                                        |
+| link_type  | An enum that represents the type of link, e.g. 'START', 'END', 'PATH', 'RELATION'                             |
+| timestamp  | The timestamp of when the link was created. This field is omitted when embedding links in the CDEvent context |
+| tags       | Custom metadata that an individual link can have. It is important to note values and keys can only be strings |
+
+#### Start Link
+
+Start links are used to indicate that a new chain has been started. The
+reasoning for having a separate link type for both `START` and `END` is that it
+allows for clear indication of starting and stopping a chain. If we relied on
+`PATH` link types to indicate either of these states, then consumers may not be
+able to distinguish the two different states. This makes it very clear and easy
+for consuming systems.
+
+| Name  | Description                                                                        |
+|-------|------------------------------------------------------------------------------------|
+| start | An node object that describes the event that is associated with starting the chain |
+
+```json
+{
+  "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+  "link_type": "START",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "start": {
+    "id": "a721d6ba-bbd6-4737-9274-5ddd2526b92f"
+  },
+  "tags": {
+    "ci.environment": "prod"
+  }
+}
+```
+
+#### End Link
+
+End links are used to indicate that a new chain has completed.
+
+| Name | Description                                                                        |
+|------|------------------------------------------------------------------------------------|
+| from | Where the link is coming from. This field is omitted when embedded this link type. |
+| end  | An node object that describes the event that is associated with ending the chain   |
+
+```json
+{
+  "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+  "link_type": "END",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "from": {
+    "id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
+  },
+  "end": {
+    "id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
+  },
+  "tags": {
+    "ci.environment": "prod"
+  }
+}
+```
+
+#### Path Link
+
+A path link is used to indicate a path that a request has taken, which may be
+from system to system or could describe a path within a system like tests.
+
+| Name            | Description              |
+|-----------------|--------------------------|
+| from       | Where the link is coming from. This field is omitted when embedded this link type. |
+| to         | Where the link is going to |
+
+```json
+{
+  "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+  "link_type": "PATH",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "from": {
+    "id": "f27e36a4-5c78-43c0-840a-52524dfeed03"
+  },
+  "to": {
+    "id": "f004290e-5e45-45f4-b97a-fa82499f534c"
+  },
+  "tags": {
+    "ci.environment": "prod"
+  }
+}
+```
+
+#### Relation Link
+
+Relation links are used to add some context to certain events
+
+| Name            | Description                                                                 |
+|-----------------|-----------------------------------------------------------------------------|
+| link_kind  | A stringed value representing any sort of relationship the link has to the event |
+| source     | The entity from which the `link_kind` is applied to. This field is omitted when embedding this link type. |
+| target     | An event that will be associated with the `source` |
+
+```json
+{
+  "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+  "link_type": "RELATION",
+  "link_kind": "ARTIFACT",
+  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "source": {
+    "id": "5668c352-dd9d-4dee-b334-384e4661d21b"
+  },
+  "target": {
+    "id": "3579a5aa-ef46-4ee8-95db-0540298835de"
+  },
+  "tags": {
+    "ci.environment": "prod"
+  }
+}
+```
 
 ### Scalability
 
