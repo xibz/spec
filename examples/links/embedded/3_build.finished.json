@@ -1,0 +1,26 @@
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "bbb3814b-0c6a-42ea-8db2-10e290c61069",
+    "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.build.finished.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z",
+    "links" : [
+      {
+        "link_type": "PATH",
+        "from": {
+          "id": "965bbb79-32fe-44eb-8817-4657cea2ff47"
+        }
+      }
+    ]
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "build",
+    "content": {
+      "artifactId": "pkg:oci/myapp@sha256%3A0b31b1c02ff458ad9b7b81cbdf8f028bd54699fa151f221d1e8de6817db93427"
+    }
+  }
+}

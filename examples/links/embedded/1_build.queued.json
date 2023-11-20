@@ -1,0 +1,24 @@
+{
+  "context": {
+    "version": "0.4.0-draft",
+    "id": "bf125d33-8b7f-4748-b804-671d86d891bf",
+    "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.build.queued.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z",
+    "links" : [
+      {
+        "link_type": "PATH",
+        "from": {
+          "id": "271069a8-fc18-44f1-b38f-9d70a1695819"
+        }
+      }
+    ]
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "build",
+    "content": {}
+  }
+}

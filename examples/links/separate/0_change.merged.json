@@ -3,13 +3,9 @@
   "link_type": "PATH",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
-    "id": "f27e36a4-5c78-43c0-840a-52524dfeed03"
+    "id": "b8e82ad7-3b8f-48b5-ba70-851d743a33ae"
   },
   "to": {
-    "id": "f004290e-5e45-45f4-b97a-fa82499f534c"
-  },
-  "tags": {
-    "ci.environment": "prod"
+    "id": "271069a8-fc18-44f1-b38f-9d70a1695819"
   }
 }
-

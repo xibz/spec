@@ -5,11 +5,14 @@
     "minLength": 1
   },
   "link_type": {
-    "description": "An enum that represents the type of link, e.g. 'START', 'END', 'RELATION'",
     "type": "string",
     "enum": [
       "RELATION"
     ]
+  },
+  "link_kind": {
+    "type": "string",
+    "minLength": 1
   },
   "timestamp": {
     "type": "string",

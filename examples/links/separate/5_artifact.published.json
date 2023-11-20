@@ -1,14 +1,11 @@
 {
   "chain_id": "97ef590e-0285-45ad-98bb-9660ffaa567e",
   "link_type": "END",
-  "timestamp": "2023-03-20T14:27:05.315384Z",
+  "timestamp": "2023-03-20T15:01:11.315384Z",
   "from": {
     "id": "b7d9d61d-6f82-4bb9-a0dd-65748491df0e"
   },
   "end": {
-    "id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
-  },
-  "tags": {
-    "ci.environment": "prod"
+    "id": "0991eefb-609d-454e-b7fd-b6da60adf54f"
   }
 }
