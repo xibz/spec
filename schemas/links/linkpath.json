@@ -10,25 +10,25 @@
   "from": {
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
     },
     "required": [
-      "id"
+      "context_id"
     ]
   },
   "to": {
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
     },
     "required": [
-      "id"
+      "context_id"
     ]
   },
   "additionalProperties": false,

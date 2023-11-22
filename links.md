@@ -174,7 +174,7 @@ act accordingly based off the ending notation.
       {
         "link_type": "PATH",
         "from": {
-          "id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a source.merged CDEvent
+          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a source.merged CDEvent
         }
       }
     ]
@@ -213,7 +213,7 @@ source change event which is shown below.
         "link_type": "RELATION",
         "link_kind": "ARTIFACT",
         "target": {
-          "id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"
+          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"
         }
       }
     ]
@@ -408,8 +408,8 @@ sender generates this id.
   "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
   "link_type": "START",
   "timestamp": "2023-03-20T14:27:05.315384Z",
-  "node": {
-    "id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
+  "start": {
+    "context_id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
   }
 }
 ```
@@ -452,10 +452,10 @@ sending a link associated with the prior event which connects `#1` to `#5`
   "link_type": "PATH",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
-      "id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
+      "context_id": "38a09112-a1ab-4c26-94c4-edfc234ef631" # context.id of #1
   },
   "to": {
-      "id": "aa6945f8-b0f1-48dd-b658-25acf95bd2f5" # context.id of #5
+      "context_id": "aa6945f8-b0f1-48dd-b658-25acf95bd2f5" # context.id of #5
   },
   "tags": [
     "ci.environment": "prod"
@@ -473,8 +473,8 @@ sending a link associated with the prior event which connects `#1` to `#5`
   "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
   "link_type": "END",
   "timestamp": "2023-03-20T14:27:05.315384Z",
-  "node": {
-    "id": "7d5e011f-5073-44a7-b4f0-86dd7d4c2c7f" # context.id of #31
+  "end": {
+    "context_id": "7d5e011f-5073-44a7-b4f0-86dd7d4c2c7f" # context.id of #31
   }
 }
 ```
@@ -513,7 +513,7 @@ for consuming systems.
   "link_type": "START",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "start": {
-    "id": "a721d6ba-bbd6-4737-9274-5ddd2526b92f"
+    "context_id": "a721d6ba-bbd6-4737-9274-5ddd2526b92f"
   },
   "tags": {
     "ci.environment": "prod"
@@ -536,10 +536,10 @@ End links are used to indicate that a new chain has completed.
   "link_type": "END",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
-    "id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
+    "context_id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
   },
   "end": {
-    "id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
+    "context_id": "bf9d3c52-1c12-4029-a8d6-e4aca6c69127"
   },
   "tags": {
     "ci.environment": "prod"
@@ -563,10 +563,10 @@ from system to system or could describe a path within a system like tests.
   "link_type": "PATH",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "from": {
-    "id": "f27e36a4-5c78-43c0-840a-52524dfeed03"
+    "context_id": "f27e36a4-5c78-43c0-840a-52524dfeed03"
   },
   "to": {
-    "id": "f004290e-5e45-45f4-b97a-fa82499f534c"
+    "context_id": "f004290e-5e45-45f4-b97a-fa82499f534c"
   },
   "tags": {
     "ci.environment": "prod"
@@ -591,16 +591,20 @@ Relation links are used to add some context to certain events
   "link_kind": "ARTIFACT",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "source": {
-    "id": "5668c352-dd9d-4dee-b334-384e4661d21b"
+    "subject_id": "5668c352-dd9d-4dee-b334-384e4661d21b"
   },
   "target": {
-    "id": "3579a5aa-ef46-4ee8-95db-0540298835de"
+    "context_id": "3579a5aa-ef46-4ee8-95db-0540298835de"
   },
   "tags": {
     "ci.environment": "prod"
   }
 }
 ```
+
+The `source` field allows for either providing the either the `subject_id` or
+the `context_id`. This allows for relation of different ID types provided by
+CDEvents while also being explicit in what the `id` is.
 
 ### Scalability
 

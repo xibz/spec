@@ -10,7 +10,7 @@
       {
         "link_type": "PATH",
         "from": {
-          "id": "bf125d33-8b7f-4748-b804-671d86d891bf"
+          "context_id": "bf125d33-8b7f-4748-b804-671d86d891bf"
         }
       }
     ]

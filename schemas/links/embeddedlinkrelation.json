@@ -13,14 +13,15 @@
     "description": "",
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "subject_id": {
         "type": "string",
         "minLength": 1
       }
-    },
-    "required": [
-      "id"
-    ]
+    }
   },
   "additionalProperties": false,
   "type": "object",

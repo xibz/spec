@@ -3,9 +3,9 @@
   "link_type": "PATH",
   "timestamp": "2023-03-20T14:37:23.315384Z",
   "from": {
-    "id": "bf125d33-8b7f-4748-b804-671d86d891bf"
+    "context_id": "bf125d33-8b7f-4748-b804-671d86d891bf"
   },
   "to": {
-    "id": "965bbb79-32fe-44eb-8817-4657cea2ff47"
+    "context_id": "965bbb79-32fe-44eb-8817-4657cea2ff47"
   }
 }

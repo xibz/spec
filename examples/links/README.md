@@ -5,7 +5,7 @@ connected. A single example link by itself is not too useful in understanding
 how links are used, and this folder is to give context to the example to help
 describe how links can be used as described in the API.
 
-More information can be found in the [links proposal]()
+More information can be found in the [links proposal](https://github.com/cdevents/spec/blob/main/links.md)
 
 ## Format
 

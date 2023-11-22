@@ -10,14 +10,28 @@
       {
         "link_type": "END",
         "from": {
-          "id": "b7d9d61d-6f82-4bb9-a0dd-65748491df0e"
+          "context_id": "b7d9d61d-6f82-4bb9-a0dd-65748491df0e"
         }
       },
       {
         "link_type": "RELATION",
         "link_kind": "ARTIFACT",
         "target": {
-          "id": "mySubject123"
+          "context_id": "bf125d33-8b7f-4748-b804-671d86d891bf"
+        }
+      },
+      {
+        "link_type": "RELATION",
+        "link_kind": "ARTIFACT",
+        "target": {
+          "context_id": "965bbb79-32fe-44eb-8817-4657cea2ff47"
+        }
+      },
+      {
+        "link_type": "RELATION",
+        "link_kind": "ARTIFACT",
+        "target": {
+          "context_id": "bbb3814b-0c6a-42ea-8db2-10e290c61069"
         }
       }
     ]

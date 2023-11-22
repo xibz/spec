@@ -19,26 +19,26 @@
     "description": "This is the context ID of the producing CDEvent.",
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
     },
     "required": [
-      "id"
+      "context_id"
     ]
   },
   "end": {
     "description": "This is the context ID of the final CDEvent in the chain",
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
     },
     "required": [
-      "id"
+      "context_id"
     ]
   },
   "additionalProperties": false,

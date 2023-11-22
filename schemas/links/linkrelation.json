@@ -22,26 +22,27 @@
     "description": "",
     "type": "object",
     "properties": {
-      "id": {
+      "subject_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
-    },
-    "required": [
-      "id"
-    ]
+    }
   },
   "target": {
     "description": "",
     "type": "object",
     "properties": {
-      "id": {
+      "context_id": {
         "type": "string",
         "minLength": 1
       }
     },
     "required": [
-      "id"
+      "context_id"
     ]
   },
   "additionalProperties": false,
