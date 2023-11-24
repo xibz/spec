@@ -276,14 +276,15 @@ The chain ID header will continue to propagate, unless the user explicitly
 starts a new CDEvent chain. If there is no chain ID, the client will generate
 one and that will be used for the lifetime of the whole events chain.
 
-Further, when links are created from a producer or consumer, the producer will
-not know what is consuming a CDEvent. This makes connecting CDEvents to one
-another difficult from the producer. To mitigate this, links will be
-constructed from the consumer with the exceptions of the start and stop links.
-When a service knows how CDEvents are connected, the service can choose to
-connect them themselves. A good example of this is when a service runs tests.
-There is no need for the consumer to construct this, and can all be done from
-the service running the test. 
+In the case when an event consumer is also an event producer, such a consumer
+will easily be able to construct the link to the consumed event. A producer of events
+with start links is often not an event consumer itself. When links are sent stand-alone,
+and not embedded within the CDEvents themselves, an event consumer that is not
+an event producer could still construct the links if it has the necessary information for
+it. An event producer that wants to provide a link to some earlier sent event will need
+to look it up in a links service or similar if the producer wants to embed the link into
+the produced event itself. For events produced within a service, that service should
+be able to construct the links between those events by itself.
 
 ```
 +-----+      +-----+      +-----+                                                                +--------------+         +-----------+
