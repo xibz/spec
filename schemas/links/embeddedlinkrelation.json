@@ -23,6 +23,10 @@
       }
     }
   },
+  "tags": {
+    "type": "object",
+    "additionalProperties": true
+  },
   "additionalProperties": false,
   "type": "object",
   "required": [
