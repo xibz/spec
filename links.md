@@ -174,7 +174,7 @@ act accordingly based off the ending notation.
       {
         "link_type": "PATH",
         "from": {
-          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a source.merged CDEvent
+          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a change.merged CDEvent
         }
       }
     ]
