@@ -155,8 +155,8 @@ serve as a bucket for all CDEvents with some sort of path to each other.
 While links can be sent separately, links can also be embedded in the CDEvent
 context as an optional field. Embedded links look similar to separate links
 except `START` links are not needed since we can infer when a chain has started
-based on the context of the event. This leaves the only two types of links that
-may be embedded, `PATH` and `END`. While `END` could be also inferred it
+based on the context of the event. This leaves only three types of links that
+may be embedded, `PATH`, `RELATION` and `END`. While `END` could be also inferred it
 may is not as simple especially if there are gaps or islands. Having an event
 specifically say it is the `END` of a chain will allow for UIs or systems to
 act accordingly based off the ending notation.
