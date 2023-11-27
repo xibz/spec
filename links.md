@@ -213,7 +213,7 @@ source change event which is shown below.
         "link_type": "RELATION",
         "link_kind": "ARTIFACT",
         "target": {
-          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"
+          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"  # context id of a change.merged CDEvent
         }
       }
     ]
