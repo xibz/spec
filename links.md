@@ -212,7 +212,7 @@ further, we can allow for a path link between `pipelinerun.queued` to the
         "from": {
           "context_id": "271069a8-fc18-44f1-b38f-9d70a1695819" # context id of the pipelinerun.queued event
         }
-      },
+      }
     ]
   },
   "subject": {
