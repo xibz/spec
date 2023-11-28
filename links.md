@@ -164,54 +164,16 @@ act accordingly based off the ending notation.
 ```json
 {
   "context": {
-    "version": "0.4.0-draft",
-    "id": "76e96c6d-e418-42a5-b3f9-04d5c0699ac4",
-    "chain_id": "7ff3f526-1a0e-4d35-8a4c-7d6295e97359",
-    "source": "/event/source/123",
-    "type": "dev.cdevents.build.queued.0.1.1",
-    "timestamp": "2023-03-20T14:20:05.315384Z",
-    "links": [
-      {
-        "link_type": "PATH",
-        "from": {
-          "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce" # context id of a change.merged CDEvent
-        }
-      }
-    ]
-  },
-  "subject": {
-    "id": "pkg:golang/mygit.com/myorg/myapp@234fd47e07d1004f0aed9c",
-    "source": "/event/source/123",
-    "type": "artifact",
-    "content": {
-      "change": {
-        "id": "myChange123",
-        "source": "my-git.example/an-org/a-repo"
-      }
-    }
-  }
-}
-```
-
-Above shows a simple path link that would allow for a connection between the
-source changed and the build queued event. To illustrate links further, we can
-allow for an artifact relation between what artifact was published to the
-source change event which is shown below.
-
-
-```json
-{
-  "context": {
-    "version": "0.4.0-draft",
+    "version": "0.3.0",
     "id": "271069a8-fc18-44f1-b38f-9d70a1695819",
     "chain_id": "7ff3f526-1a0e-4d35-8a4c-7d6295e97359",
     "source": "/event/source/123",
-    "type": "dev.cdevents.artifact.published.0.1.1",
-    "timestamp": "2023-03-20T14:35:06.123456Z",
+    "type": "dev.cdevents.pipelinerun.queued.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z",
     "links": [
       {
         "link_type": "RELATION",
-        "link_kind": "ARTIFACT",
+        "link_kind": "TRIGGER",
         "target": {
           "context_id": "5328c37f-bb7e-4bb7-84ea-9f5f85e4a7ce"  # context id of a change.merged CDEvent
         }
@@ -219,14 +181,47 @@ source change event which is shown below.
     ]
   },
   "subject": {
-    "id": "pkg:golang/mygit.com/myorg/myapp@234fd47e07d1004f0aed9c",
+    "id": "mySubject123",
     "source": "/event/source/123",
-    "type": "artifact",
+    "type": "pipelineRun",
     "content": {
-      "change": {
-        "id": "myChange123",
-        "source": "my-git.example/an-org/a-repo"
-      }
+      "pipelineName": "myPipeline",
+      "url": "https://www.example.com/mySubject123"
+    }
+  }
+}
+```
+
+Above shows a simple relation link that would allow a trigger relation of a
+`changed.merge` and the `pipelinerun.queued` event. To illustrate links
+further, we can allow for a path link between `pipelinerun.queued` to the
+`pipelinerun.started` event shown below.
+
+```json
+{
+  "context": {
+    "version": "0.3.0",
+    "id": "271069a8-fc18-44f1-b38f-9d70a1695819",
+    "chain_id": "7ff3f526-1a0e-4d35-8a4c-7d6295e97359",
+    "source": "/event/source/123",
+    "type": "dev.cdevents.pipelinerun.started.0.1.1",
+    "timestamp": "2023-03-20T14:27:05.315384Z",
+    "links": [
+      {
+        "link_type": "PATH",
+        "from": {
+          "context_id": "271069a8-fc18-44f1-b38f-9d70a1695819" # context id of the pipelinerun.queued event
+        }
+      },
+    ]
+  },
+  "subject": {
+    "id": "mySubject123",
+    "source": "/event/source/123",
+    "type": "pipelineRun",
+    "content": {
+      "pipelineName": "myPipeline",
+      "url": "https://www.example.com/mySubject123"
     }
   }
 }
