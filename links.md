@@ -492,12 +492,12 @@ First is the common link fields shared between all links
 
 #### Start Link
 
-Start links are used to indicate that a new chain has been started. The
-reasoning for having a separate link type for both `START` and `END` is that it
-allows for clear indication of starting and stopping a chain. If we relied on
-`PATH` link types to indicate either of these states, then consumers may not be
-able to distinguish the two different states. This makes it very clear and easy
-for consuming systems.
+Start links are used to indicate that a new chain has been started, and is a
+special type of `PATH` link. The reasoning for having a separate link type for
+both `START` and `END` is that it allows for clear indication of starting and
+stopping a chain. If we relied only on `PATH` link types to indicate either of
+these states, then consumers may not be able to distinguish the two different
+states.  This makes it very clear and easy for consuming systems.
 
 | Name  | Description                                                                        |
 |-------|------------------------------------------------------------------------------------|
@@ -519,7 +519,8 @@ for consuming systems.
 
 #### End Link
 
-End links are used to indicate that a new chain has completed.
+End links are used to indicate that a new chain has completed, and are a
+special type of `PATH` link.
 
 | Name | Description                                                                        |
 |------|------------------------------------------------------------------------------------|

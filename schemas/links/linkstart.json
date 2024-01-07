@@ -5,7 +5,7 @@
     "minLength": 1
   },
   "link_type": {
-    "description": "An enum that represents the type of link, e.g. 'START', 'END', 'RELATION'",
+    "description": "The type associated with the link. In this case, 'START', suggesting the start of some CI/CD lifecycle",
     "type": "string",
     "enum": [
       "START"

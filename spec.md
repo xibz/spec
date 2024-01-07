@@ -33,6 +33,8 @@ CDEvents is a common specification for Continuous Delivery events.
     - [timestamp](#timestamp)
     - [version](#version)
   - [OPTIONAL Context  Attributes](#optional-context-attributes)
+    - [chain_id](#chain_id)
+    - [links](#links)
   - [Context example](#context-example)
 - [CDEvent subject](#cdevent-subject)
   - [REQUIRED Subject Attributes](#required-subject-attributes)
