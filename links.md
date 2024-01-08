@@ -453,9 +453,9 @@ sending a link associated with the prior event which connects `#1` to `#5`
   "to": {
       "context_id": "aa6945f8-b0f1-48dd-b658-25acf95bd2f5" # context.id of #5
   },
-  "tags": [
+  "tags": {
     "ci.environment": "prod"
-  ]
+  }
 }
 ```
 
