@@ -7,6 +7,12 @@
     "type": "string",
     "format": "date-time"
   },
+  "link_type": {
+    "type": "string",
+    "enum": [
+      "PATH"
+    ]
+  },
   "from": {
     "type": "object",
     "properties": {
