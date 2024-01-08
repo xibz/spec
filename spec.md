@@ -317,9 +317,9 @@ defined in the [vocabulary](#vocabulary):
     ```json
     [
       {
-        "link_type": "PATH",
+        "link_type": "END",
         "from": {
-          "context_id": "271069a8-fc18-44f1-b38f-9d70a1695819"
+          "context_id": "fb455028-a876-430e-a5ff-4b2ece77e827"
         }
       }
     ]
