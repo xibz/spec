@@ -4,8 +4,8 @@
 
 This proposal will outline how to connect individual CDEvents to one other.
 Currently there's no way of associating events without needing to backtrack
-across certain context attributes, e.g.
-[id](https://github.com/CDEvents/spec/blob/main/spec.md#id-context).  While
+across certain subject attributes, e.g.
+[id](https://github.com/CDEvents/spec/blob/main/spec.md#id-subject).  While
 this does give us the ability to construct some graph, we do not know when a
 particular chain starts or finishes.
 
