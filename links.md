@@ -421,7 +421,7 @@ sender generates this id.
 {
   "context": {
     "version": "0.4.0-draft",
-    "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+    "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
     "id": "AA6945F8-B0F1-48DD-B658-25ACF95BD2F5",
     "source": "/event/source/123",
     "type": "dev.cdevents.pipelinerun.queued.0.1.1",
@@ -466,7 +466,7 @@ sending a link associated with the prior event which connects `#1` to `#5`
 
 ```json
 {
-  "chain_id": "D0BE0005-CCA7-4175-8FE3-F64D2F27BC01",
+  "chain_id": "d0be0005-cca7-4175-8fe3-f64d2f27bc01",
   "link_type": "END",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "end": {
