@@ -22,10 +22,6 @@
     "description": "",
     "type": "object",
     "properties": {
-      "subject_id": {
-        "type": "string",
-        "minLength": 1
-      },
       "context_id": {
         "type": "string",
         "minLength": 1

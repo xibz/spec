@@ -16,10 +16,6 @@
       "context_id": {
         "type": "string",
         "minLength": 1
-      },
-      "subject_id": {
-        "type": "string",
-        "minLength": 1
       }
     }
   },

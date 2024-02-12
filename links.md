@@ -588,7 +588,7 @@ Relation links are used to add some context to certain events
   "link_kind": "ARTIFACT",
   "timestamp": "2023-03-20T14:27:05.315384Z",
   "source": {
-    "subject_id": "5668c352-dd9d-4dee-b334-384e4661d21b"
+    "context_id": "5668c352-dd9d-4dee-b334-384e4661d21b"
   },
   "target": {
     "context_id": "3579a5aa-ef46-4ee8-95db-0540298835de"
@@ -598,11 +598,6 @@ Relation links are used to add some context to certain events
   }
 }
 ```
-
-The `source` field allows for either providing the either the `subject_id` or
-the `context_id`. This allows for relation of different ID types provided by
-CDEvents while also being explicit in what the `id` is.
-
 ### Scalability
 
 Scalability is one of the bigger goals in this proposal and we wanted to ensure
