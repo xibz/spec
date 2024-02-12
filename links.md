@@ -5,7 +5,7 @@
 This proposal will outline how to connect individual CDEvents to one other.
 Currently there's no way of associating events without needing to backtrack
 across certain subject attributes, e.g.
-[id](https://github.com/CDEvents/spec/blob/main/spec.md#id-subject).  While
+[id](https://github.com/CDEvents/spec/blob/main/spec.md#id-subject). While
 this does give us the ability to construct some graph, we do not know when a
 particular chain starts or finishes.
 
@@ -612,10 +612,10 @@ implement on top of SQL like DBs and document DBs, but it will never be as fast
 as querying for a chain ID.
 
 Instead a link service that processes and stores the links to some DB is much
-prefer as it gives companies and developers options to choose from.  When using
-an SQL database, the chain ID could be the secondary key to easily retrieve
-indexed entities. Links could be easily sorted by timestamps which should
-roughly coordinate to their linked neighbors, parent and child.
+preferred as it gives companies and developers options to choose from.  When
+using an SQL database, the chain ID could be the secondary key to easily
+retrieve indexed entities. Links could be easily sorted by timestamps which
+should roughly coordinate to their linked neighbors, parent and child.
 
 CDEvents that are to be ingested by some service would also have to worry about
 the number of events returned. This problem is mitigated in that only the
