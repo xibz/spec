@@ -1,3 +1,4 @@
 {
-  "foo_bar": "fail"
+  "fooId": "succeed",
+  "fooID": "fail"
 }
